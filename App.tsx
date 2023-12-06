@@ -5,7 +5,7 @@
  * @format
  */
 
-import React from 'react';
+import React, {createContext, useState} from 'react';
 import type {PropsWithChildren} from 'react';
 import {
   SafeAreaView,
@@ -27,24 +27,30 @@ import {
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CameraPage from './src/CameraPage';
+import ImageView from './src/ImageView';
 
 
 
 
-
+export const ImageContext = createContext<any>(null);
 const stack = createNativeStackNavigator()
 function App(): JSX.Element {
+  const [imagepath, setImagepath] = useState('')
  
 
   return (
+
+    <ImageContext.Provider value={[imagepath, setImagepath]}>
     <NavigationContainer>
     <stack.Navigator screenOptions={
      {headerShown:false}
     }>
    {/* <stack.Screen name='Page1' component={Page1} /> */}
    <stack.Screen name='CameraPage' component={CameraPage} />
+   <stack.Screen name='ImageView' component={ImageView} />
     </stack.Navigator>
     </NavigationContainer>
+    </ImageContext.Provider>
   );
 }
 

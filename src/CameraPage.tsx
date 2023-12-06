@@ -1,16 +1,18 @@
 import { View, Text, useWindowDimensions, TouchableOpacity, Image, Modal } from 'react-native'
-import React, { useCallback, useRef, useState, useEffect } from 'react'
+import React, { useCallback, useRef, useState, useEffect, useContext } from 'react'
 import { useIsFocused } from '@react-navigation/core'
 import { CameraRuntimeError, PhotoFile, useCameraDevice, useCameraFormat, useFrameProcessor, VideoFile, TakePhotoOptions, Camera } from 'react-native-vision-camera'
 import { PermissionsAndroid, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import RNFS from 'react-native-fs';
+import PDFLib, { PDFDocument, PDFPage } from 'react-native-pdf';
+import { ImageContext } from '../App';
 
 const CameraPage = () => {
     const { height, width } = useWindowDimensions()
     const navigation: any = useNavigation()
     const [flash, setFlash] = useState('off')
-    const [imagepath, setImagepath] = useState('')
+    const [imagepath, setImagepath] = useContext(ImageContext)
     const [modals, setModalS] = useState(false)
     const [switchcamera, setSwitchcamera] = useState('back')
 
@@ -50,7 +52,7 @@ const CameraPage = () => {
             const path = `${directory}/${fileName}`;
       
             await RNFS.copyFile(imageUri, path);
-      
+            setImagepath(path)
             console.log('Image saved to storage:', path);
           } catch (error) {
             console.error('Error saving image:', error);
@@ -71,11 +73,39 @@ const CameraPage = () => {
         //     type: 'photo',
         // })
         //  saveImageToCameraRoll(`file://${file.path}`);
-        setImagepath(file.path)
+        
         // console.log(file.path)
+        navigation.navigate('ImageView')
     }
 
     const device = useCameraDevice(switchcamera)
+
+    const convertImageToPDF = async () => {
+        try {
+          const imagePath = imagepath
+          '/path/to/your/image.jpg'; // Replace with your image path
+          const pdfPath = `${RNFS.DocumentDirectoryPath}/imageToPdf.pdf`;
+    
+          const imageBase64 = await RNFS.readFile(imagePath, 'base64');
+    
+          const pdfDoc = await PDFDocument.create();
+          const pdfPage = PDFPage.create().drawImage(`data:image/jpeg;base64,${imageBase64}`, {
+            x: 0,
+            y: 0,
+            width: 612, 
+            height: 792, 
+          });
+    
+          pdfDoc.addPages(pdfPage);
+          const pdfBytes = await pdfDoc.save();
+    
+          await RNFS.writeFile(pdfPath, pdfBytes, 'base64');
+    
+          console.log('Image converted to PDF and saved:', pdfPath);
+        } catch (error) {
+          console.error('Error converting image to PDF:', error);
+        }
+      };
     return (
         // <View style={{height:height, width:width, backgroundColor:'white', justifyContent:'center', alignItems:'center'}}>
         //   <TouchableOpacity style={{height:50, width:150, backgroundColor:'white', justifyContent:'center', alignItems:'center', borderRadius:5, elevation:10, flexDirection:'row'}}>
@@ -125,32 +155,12 @@ const CameraPage = () => {
             </View>
             <TouchableOpacity onPress={() => {
                 TakePhoto()
-                setModalS(true)
             }} style={{ height: 85, width: 85, backgroundColor: 'white', position: 'absolute', bottom: 10, borderRadius: 60, justifyContent: 'center', alignItems: 'center', }}>
                 <View style={{ height: 75, width: 75, backgroundColor: 'black', borderRadius: 50, alignSelf: 'center', justifyContent: 'center', alignItems: 'center' }}>
                     <View style={{ height: 65, width: 65, backgroundColor: 'white', borderRadius: 50, alignSelf: 'center' }}></View>
                 </View>
             </TouchableOpacity>
 
-            <Modal
-                visible={modals}
-
-            >
-                <View style={{ height: height, width: width }}>
-                    <TouchableOpacity onPress={() => setModalS(false)}>
-                        <Image source={require('../assets/img/close.png')}
-                            style={{ height: 35, width: 35, alignSelf: 'flex-end', marginRight: 10, marginTop: 10 }} />
-                    </TouchableOpacity>
-                    <View style={{ height: height - 45, width: width }}>
-                        <Image source={{ uri: "file://" + imagepath }}
-                            style={{ height: height - 45, width: width, resizeMode: 'contain' }} />
-
-
-                    </View>
-                </View>
-
-
-            </Modal>
         </View>
     )
 }
